@@ -9,9 +9,9 @@ import torch.utils.data
 import torchio
 
 
-class Mri3DDataLoader(torch.utils.data.Dataset):
+class IXIDataset(torch.utils.data.Dataset):
     """Loads IXI dataset."""
-    def __init__(self, df: pd.DataFrame, scans_directory: str | Path, batch_size: int = 1, augment: bool = False):
+    def __init__(self, df: pd.DataFrame, scans_directory: str | Path, augment: bool = False):
         """
         Initialize dataloader.
 
@@ -23,27 +23,19 @@ class Mri3DDataLoader(torch.utils.data.Dataset):
         self.scans_directory = Path(scans_directory)
         self.df = self.prepare_df(df)
         print(f"Loaded {len(self.df)} samples.")
-        self.batch_size = batch_size
         self.augment = augment
 
         self.basic_transform = torchio.Compose([
-            torchio.ToCanonical(p=1.0),
             torchio.CropOrPad(target_shape=(180, 180, 180), p=1.0),
             torchio.Resize(target_shape=(128, 128, 128)),
             ])
 
         self.augmentations = torchio.Compose([
-            #torchio.RandomFlip(axes=(0, 1, 2), p=0.5),
-            #torchio.RandomAffine(scales=(1.0, 1.0), degrees=5, translation=10, isotropic=True, p=0.5),
-            # torchio.RandomNoise(std=(0, 0.1), p=0.5),
-            #torchio.RandomBlur(std=(0, 0.5), p=0.5),
-            # torchio.RandomMotion(p=0.3),
-            # torchio.RandomSpike(p=0.3),
-            # torchio.RandomGhosting(p=0.3),
-            #torchio.RandomSwap(patch_size=10, num_iterations=15, p=1.0),
-            #torchio.Clamp(0, 1)
+            torchio.RandomFlip(axes=(0, 1, 2), p=0.5),
+            torchio.RandomAffine(scales=(0.8, 1.2), degrees=5, translation=10, isotropic=True, p=0.5),
+            torchio.RandomBlur(std=(0, 0.5), p=0.5),
+            torchio.RandomSwap(patch_size=10, num_iterations=15, p=1.0),
         ])
-
 
         self.shuffle()
 
@@ -76,18 +68,18 @@ class Mri3DDataLoader(torch.utils.data.Dataset):
 
     def __len__(self) -> int:
         """Get number of batches."""
-        return len(self.df) // self.batch_size
+        return len(self.df)
 
     def shuffle(self) -> None:
         """Shuffle dataframe."""
         self.df = self.df.sample(frac=1).reset_index(drop=True)
 
-    def get_single_item(self, idx: int) -> tuple[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]:
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]:
         """
         Get single item from the dataset.
 
         :param idx: Index of the item.
-        :return: Tuple of tensors: image and label.
+        :return: image and tuple of ground truth tensors of age and sex for given image.
         """
         path = self.df.iloc[idx]["path"]
         image = nib.load(path).get_fdata()
@@ -97,23 +89,7 @@ class Mri3DDataLoader(torch.utils.data.Dataset):
         image = self.basic_transform(image)
         if self.augment:
             image = self.augmentations(image)
-        image = np.expand_dims(image, axis=0)  # add batch dimension
-        image = torch.from_numpy(image)
-        y_age = self.df.iloc[idx]["AGE"]
+        image = torch.from_numpy(image).float().to("cuda")
+        y_age = np.asarray(self.df.iloc[idx]["AGE"].astype(float))
         y_sex = self.df.iloc[idx][["Male", "Female"]].astype(float).values
-        return image, (y_age, y_sex)
-
-    # Use torch.DataLoader instead
-    def __getitem__(self, idx: int) -> tuple[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]:
-        """Get batch of images and labels. Returns tuple of (images, one hot encoded labels)."""
-        images = []
-        ys_age = []
-        ys_sex = []
-        for i in range(self.batch_size):
-            item_idx = idx * self.batch_size + i
-            image, (y_age, y_sex) = self.get_single_item(item_idx)
-            images.append(image)
-            ys_age.append(y_age)
-            ys_sex.append(y_sex)
-        return torch.cat(images, dim=0).float().cuda(), (torch.from_numpy(np.array(ys_age)).float(),
-                                                         torch.from_numpy(np.array(ys_sex)).float())
+        return image, (torch.from_numpy(y_age).float(), torch.from_numpy(y_sex).float())
