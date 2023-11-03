@@ -16,6 +16,7 @@ BASE_COMMAND = rf"docker run --gpus all \
 
 scans_to_process = os.listdir(SOURCE_DATA_PATH)
 
+os.makedirs(OUTPUT_DATA_PATH, exist_ok=True)
 for filename in scans_to_process:
     filename = filename.split('.')[0]
     if os.path.exists(os.path.join(OUTPUT_DATA_PATH, filename, "mri", "antsdn.brain_final.nii.gz")):
