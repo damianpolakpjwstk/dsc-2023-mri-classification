@@ -1,9 +1,9 @@
 import os
 from time import time
 
-SOURCE_DATA_PATH = r"/home/dpolak/Downloads/IXI_dataset"
-OUTPUT_DATA_PATH = r"/home/dpolak/Downloads/IXI_output"
-FREESURFER_LICENCE_PATH = r"/home/dpolak/Downloads/freesurfer_license/"
+SOURCE_DATA_PATH = r"/home/dpolak/DSC_TUTORIAL/IXI_dataset/"
+OUTPUT_DATA_PATH = r"/home/dpolak/DSC_TUTORIAL/IXI_DATASET_PREPROCESSED"
+FREESURFER_LICENCE_PATH = r"/home/dpolak/DSC_TUTORIAL/freesurfer_license/"
 ID_U = os.getuid()
 ID_G = os.getgid()
 

@@ -51,8 +51,8 @@ def stats_to_one_line(df: pd.DataFrame) -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    IXI_FastSurfer_path = r"/home/dpolak/Downloads/IXI_output/"
-    IXI_demographic_path = r"/home/dpolak/Downloads/IXI.xls"
+    IXI_FastSurfer_path = r"/home/dpolak/DSC_TUTORIAL/IXI_output_stats_and_final_scans"
+    IXI_demographic_path = r"/home/dpolak/DSC_TUTORIAL/IXI.xls"
     output_path = r"ixi_tabular.csv"
 
     df_volumetric = parse_directories(IXI_FastSurfer_path)
